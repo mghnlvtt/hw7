@@ -53,6 +53,12 @@ def make_positions_table(data, cur, conn):
 #     created for you -- see make_positions_table above for details.
 
 def make_players_table(data, cur, conn):
+    cur.execute("CREATE TABLE IF NOT EXISTS Players (id INTEGER, name TEXT UNIQUE, position_id INTEGER, birthyear INTEGER, nationality TEXT,FOREIGN KEY (position_id) REFERENCES Positions(id))")
+    for player in data.get('squad'):
+        cur.execute("SELECT id FROM Positions WHERE position = '{}'".format(player.get('position')))
+        cur.execute("INSERT OR IGNORE INTO Players (id,name,position_id,birthyear,nationality) VALUES (?,?,?,?,?)", (player.get('id'),player.get('name'),cur,player.get('dateOfBirth').split('-')[0],player.get('nationality')))
+    conn.commit()
+    conn.close()
     pass
 
 ## [TASK 2]: 10 points
