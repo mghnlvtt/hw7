@@ -55,8 +55,9 @@ def make_positions_table(data, cur, conn):
 def make_players_table(data, cur, conn):
     cur.execute("CREATE TABLE IF NOT EXISTS Players (id INTEGER, name TEXT UNIQUE, position_id INTEGER, birthyear INTEGER, nationality TEXT,FOREIGN KEY (position_id) REFERENCES Positions(id))")
     for player in data.get('squad'):
-        cur.execute("SELECT id FROM Positions WHERE position = '{}'".format(player.get('position')))
-        cur.execute("INSERT OR IGNORE INTO Players (id,name,position_id,birthyear,nationality) VALUES (?,?,?,?,?)", (player.get('id'),player.get('name'),cur,player.get('dateOfBirth').split('-')[0],player.get('nationality')))
+        playerposition = player.get('position')
+        pid = cur.execute("SELECT id FROM Positions WHERE Positions.position = ?",[playerposition]).fetchone()[0]
+        cur.execute("INSERT INTO Players (id,name,position_id,birthyear,nationality) VALUES (?,?,?,?,?)",(player.get('id'),player.get('name'),pid,player.get('dateOfBirth').split('-')[0],player.get('nationality')))
     conn.commit()
     conn.close()
     pass
