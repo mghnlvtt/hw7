@@ -121,7 +121,7 @@ def birthyear_nationality_search(age, country, cur, conn):
 
 def position_birth_search(position, age, cur, conn):
     year = 2023 - age
-    positionbirthyear = cur.execute("SELECT Players.name,Positions.position,Players.birthyear FROM Players JOIN Positions WHERE Positions.id = ? AND Players.birthyear < ?",(position,year,)).fetchall()
+    positionbirthyear = cur.execute("SELECT Players.name,Positions.position,Players.birthyear FROM Players JOIN Positions WHERE Positions.position = ? AND Positions.id = Players.position_id AND Players.birthyear > ?",(position,year,)).fetchall()
     conn.commit()
     return positionbirthyear
     pass
@@ -163,6 +163,15 @@ def position_birth_search(position, age, cur, conn):
 #     the passed year. 
 
 def make_winners_table(data, cur, conn):
+    # positions = []
+    # for player in data['squad']:
+    #     position = player['position']
+    #     if position not in positions:
+    #         positions.append(position)
+    # cur.execute("CREATE TABLE IF NOT EXISTS Positions (id INTEGER PRIMARY KEY, position TEXT UNIQUE)")
+    # for i in range(len(positions)):
+    #     cur.execute("INSERT OR IGNORE INTO Positions (id, position) VALUES (?,?)",(i, positions[i]))
+    # conn.commit()
     pass
 
 def make_seasons_table(data, cur, conn):
@@ -211,17 +220,17 @@ class TestAllMethods(unittest.TestCase):
         self.assertEqual(a[3][2], 1992)
         self.assertEqual(len(a[1]), 3)
 
-    # def test_type_speed_defense_search(self):
-    #     b = sorted(position_birth_search('Goalkeeper', 35, self.cur, self.conn))
-    #     self.assertEqual(len(b), 2)
-    #     self.assertEqual(type(b[0][0]), str)
-    #     self.assertEqual(type(b[1][1]), str)
-    #     self.assertEqual(len(b[1]), 3) 
-    #     self.assertEqual(b[1], ('Jack Butland', 'Goalkeeper', 1993)) 
+    def test_type_speed_defense_search(self):
+        b = sorted(position_birth_search('Goalkeeper', 35, self.cur, self.conn))
+        self.assertEqual(len(b), 2)
+        self.assertEqual(type(b[0][0]), str)
+        self.assertEqual(type(b[1][1]), str)
+        self.assertEqual(len(b[1]), 3) 
+        self.assertEqual(b[1], ('Jack Butland', 'Goalkeeper', 1993)) 
 
-    #     c = sorted(position_birth_search("Defence", 23, self.cur, self.conn))
-    #     self.assertEqual(len(c), 1)
-    #     self.assertEqual(c, [('Teden Mengi', 'Defence', 2002)])
+        c = sorted(position_birth_search("Defence", 23, self.cur, self.conn))
+        self.assertEqual(len(c), 1)
+        self.assertEqual(c, [('Teden Mengi', 'Defence', 2002)])
     
     # # test extra credit
     # def test_make_winners_table(self):
