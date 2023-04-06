@@ -59,7 +59,6 @@ def make_players_table(data, cur, conn):
         pid = cur.execute("SELECT id FROM Positions WHERE Positions.position = ?",[playerposition]).fetchone()[0]
         cur.execute("INSERT OR IGNORE INTO Players (id,name,position_id,birthyear,nationality) VALUES (?,?,?,?,?)",(player.get('id'),player.get('name'),pid,player.get('dateOfBirth').split('-')[0],player.get('nationality')))
     conn.commit()
-    conn.close()
     pass
 
 ## [TASK 2]: 10 points
@@ -163,21 +162,47 @@ def position_birth_search(position, age, cur, conn):
 #     the passed year. 
 
 def make_winners_table(data, cur, conn):
-    # positions = []
-    # for player in data['squad']:
-    #     position = player['position']
-    #     if position not in positions:
-    #         positions.append(position)
-    # cur.execute("CREATE TABLE IF NOT EXISTS Positions (id INTEGER PRIMARY KEY, position TEXT UNIQUE)")
-    # for i in range(len(positions)):
-    #     cur.execute("INSERT OR IGNORE INTO Positions (id, position) VALUES (?,?)",(i, positions[i]))
-    # conn.commit()
+    winnerslst = []
+    for winners in data.get('seasons'):
+        winner = winners['winner']
+        if winner != None:
+            tup = (winner.get('id'),winner.get('name'))
+            if tup not in winnerslst:
+                winnerslst.append(tup)
+    cur.execute("CREATE TABLE IF NOT EXISTS Winners (id INTEGER PRIMARY KEY, name TEXT UNIQUE)")
+    for tuple in winnerslst:
+        cur.execute("INSERT OR IGNORE INTO Winners (id, name) VALUES (?,?)",(tuple[0], tuple[1]))
+    conn.commit()
     pass
 
 def make_seasons_table(data, cur, conn):
+    seasonsdata = []
+    for season in data.get('seasons'):
+        if season['winner'] != None:
+            tup = (season['id'],int(season['endDate'].split('-')[0]),season['winner']['name'])
+            if tup not in seasonsdata:
+                seasonsdata.append(tup)
+    cur.execute("CREATE TABLE IF NOT EXISTS Seasons (id INTEGER PRIMARY KEY, winner_id TEXT, end_year INTEGER,FOREIGN KEY (winner_id) REFERENCES Winners(id))")
+    for tuple in seasonsdata:
+        id = cur.execute("SELECT id FROM Winners WHERE Winners.name = ?",[tuple[2]]).fetchone()[0]
+        cur.execute("INSERT OR IGNORE INTO Seasons (id, winner_id, end_year) VALUES (?,?,?)",(tuple[0],id,tuple[1]))
+    conn.commit()
     pass
 
+
+# The third function takes in a year (string), the database cursor, 
+#     and the database connection object. It returns a dictionary of how many 
+#     times each team has won the Premier League since the passed year.
+#     In the dict, each winning team's (full) name is a key,
+#     and the value associated with each team is the number of times
+#     they have won since the year passed, including the season that ended
+#     the passed year.
+
 def winners_since_search(year, cur, conn):
+    dict = {}
+    result = cur.execute("SELECT Winners.name, COUNT(Seasons.winner_id) FROM Winners JOIN Seasons WHERE Winners.id = Seasons.winner_id AND Seasons.end_year >= ? GROUP BY name",(year,)).fetchall()
+    return result
+    conn.commit()
     pass
 
 
@@ -233,21 +258,25 @@ class TestAllMethods(unittest.TestCase):
         self.assertEqual(c, [('Teden Mengi', 'Defence', 2002)])
     
     # # test extra credit
-    # def test_make_winners_table(self):
-    #     self.cur2.execute('SELECT * from Winners')
-    #     winners_list = self.cur2.fetchall()
+    def test_make_winners_table(self):
+        self.cur2.execute('SELECT * from Winners')
+        winners_list = self.cur2.fetchall()
+        self.assertEqual(type(winners_list[0]),tuple)
+        self.assertEqual(type(winners_list),list)
+        pass
 
-    #     pass
-
-    # def test_make_seasons_table(self):
-    #     self.cur2.execute('SELECT * from Seasons')
-    #     seasons_list = self.cur2.fetchall()
-
-    #     pass
+    def test_make_seasons_table(self):
+        self.cur2.execute('SELECT * from Seasons')
+        seasons_list = self.cur2.fetchall()
+        self.assertEqual(type(seasons_list[0][0]),int)
+        self.assertEqual(type(seasons_list[0][2]),int)
+        pass
 
     # def test_winners_since_search(self):
-
-    #     pass
+        test = winners_since_search('2004',self.cur2,self.conn2)
+        self.assertEqual(type(test[0][0]),str)
+        self.assertEqual(type(test[0][1]),int)
+    # pass
 
 
 def main():
@@ -258,6 +287,7 @@ def main():
     cur, conn = open_database('Football.db')
     make_positions_table(json_data, cur, conn)
     make_players_table(json_data, cur, conn)
+    birthyear_nationality_search(19, 'England', cur, conn)
     conn.close()
 
 
